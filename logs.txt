@@ -1,0 +1,643 @@
+﻿Agglomerative Clustering
+
+
+
+
+Code:
+from matplotlib import pyplot as plt
+from scipy.cluster.hierarchy import dendrogram, linkage
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+X = np.array([[0.40, 0.53],
+              [0.22, 0.32],
+              [0.35, 0.32],
+              [0.26, 0.19],
+              [0.08, 0.41],
+              [0.35, 0.30],
+              [0.80, 0.98],
+              [0.28, 0.33]
+              ])
+
+
+
+
+class Distance_computation_grid(object):
+    '''
+        class to enable the Computation of distance matrix
+    '''
+
+
+    def __init__(self):
+        pass
+
+
+    def compute_distance(self, samples):
+        '''
+            Creates a matrix of distances between individual samples and clusters attained at a particular step
+        '''
+        Distance_mat = np.zeros((len(samples), len(samples)))
+        for i in range(Distance_mat.shape[0]):
+            for j in range(Distance_mat.shape[0]):
+                if i != j:
+                    Distance_mat[i, j] = float(
+                        self.distance_calculate(samples[i], samples[j]))
+                else:
+                    Distance_mat[i, j] = 10**4
+        return Distance_mat
+
+
+    def distance_calculate(self, sample1, sample2):
+ 
+        dist = []
+        for i in range(len(sample1)):
+            for j in range(len(sample2)):
+                try:
+                    dist.append(np.linalg.norm(
+                        np.array(sample1[i])-np.array(sample2[j])))
+                except:
+                    dist.append(self.intersampledist(sample1[i], sample2[j]))
+        return min(dist)
+
+
+    def intersampledist(self, s1, s2):
+        '''
+            To be used in case we have one sample and one cluster . It takes the help of one
+            method 'interclusterdist' to compute the distances between elements of a cluster(which are
+            samples) and the actual sample given.
+        '''
+        if str(type(s2[0])) != '<class \'list\'>':
+            s2 = [s2]
+        if str(type(s1[0])) != '<class \'list\'>':
+            s1 = [s1]
+        m = len(s1)
+        n = len(s2)
+        dist = []
+        if n >= m:
+            for i in range(n):
+                for j in range(m):
+                    if (len(s2[i]) >= len(s1[j])) and str(type(s2[i][0]) != '<class \'list\'>'):
+                        dist.append(self.interclusterdist(s2[i], s1[j]))
+                    else:
+                        dist.append(np.linalg.norm(
+                            np.array(s2[i])-np.array(s1[j])))
+        else:
+            for i in range(m):
+                for j in range(n):
+                    if (len(s1[i]) >= len(s2[j])) and str(type(s1[i][0]) != '<class \'list\'>'):
+                        dist.append(self.interclusterdist(s1[i], s2[j]))
+                    else:
+                        dist.append(np.linalg.norm(
+                            np.array(s1[i])-np.array(s2[j])))
+        return min(dist)
+
+
+    def interclusterdist(self, cl, sample):
+        if sample[0] != '<class \'list\'>':
+            sample = [sample]
+        dist = []
+        for i in range(len(cl)):
+            for j in range(len(sample)):
+                dist.append(np.linalg.norm(
+                    np.array(cl[i])-np.array(sample[j])))
+        return min(dist)
+
+
+
+
+progression = [[i] for i in range(X.shape[0])]
+samples = [[list(X[i])] for i in range(X.shape[0])]
+m = len(samples)
+distcal = Distance_computation_grid()
+
+
+while m > 1:
+    print('Sample size before clustering    :- ', m)
+    Distance_mat = distcal.compute_distance(samples)
+    sample_ind_needed = np.where(Distance_mat == Distance_mat.min())[0]
+    value_to_add = samples.pop(sample_ind_needed[1])
+    samples[sample_ind_needed[0]].append(value_to_add)
+
+
+    print('Cluster Node 1                   :-',
+          progression[sample_ind_needed[0]])
+    print('Cluster Node 2                   :-',
+          progression[sample_ind_needed[1]])
+
+
+    progression[sample_ind_needed[0]].append(progression[sample_ind_needed[1]])
+    progression[sample_ind_needed[0]] = [progression[sample_ind_needed[0]]]
+    v = progression.pop(sample_ind_needed[1])
+    m = len(samples)
+
+
+    print('Progression(Current Sample)      :-', progression)
+    print('Cluster attained                 :-',
+          progression[sample_ind_needed[0]])
+    print('Sample size after clustering     :-', m)
+    print('\n')
+
+
+Z = linkage(X, 'single')
+fig = plt.figure(figsize=(25, 10))
+dn = dendrogram(Z)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+k means:
+## Initialisation
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+#matplotlib inline
+
+
+df = pd.DataFrame({
+    'x': [12, 20, 28, 18, 29, 33, 24, 45, 45, 52, 51, 52, 55, 53, 55, 61, 64, 69, 72],
+    'y': [39, 36, 30, 52, 54, 46, 55, 59, 63, 70, 66, 63, 58, 23, 14, 8, 19, 7, 24]
+})
+
+
+
+
+np.random.seed(200)
+k = 3
+# centroids[i] = [x, y]
+centroids = {
+    i+1: [np.random.randint(0, 80), np.random.randint(0, 80)]
+    for i in range(k)
+}
+   
+fig = plt.figure(figsize=(5, 5))
+plt.scatter(df['x'], df['y'], color='k')
+colmap = {1: 'r', 2: 'g', 3: 'b'}
+for i in centroids.keys():
+    plt.scatter(*centroids[i], color=colmap[i])
+plt.xlim(0, 80)
+plt.ylim(0, 80)
+plt.show()
+
+
+## Assignment Stage
+def assignment(df, centroids):
+    for i in centroids.keys():
+        # sqrt((x1 - x2)^2 - (y1 - y2)^2)
+        df['distance_from_{}'.format(i)] = (
+            np.sqrt(
+                (df['x'] - centroids[i][0]) ** 2
+                + (df['y'] - centroids[i][1]) ** 2
+            )
+        )
+    centroid_distance_cols = ['distance_from_{}'.format(i) for i in centroids.keys()]
+    df['closest'] = df.loc[:, centroid_distance_cols].idxmin(axis=1)
+    df['closest'] = df['closest'].map(lambda x: int(x.lstrip('distance_from_')))
+    df['color'] = df['closest'].map(lambda x: colmap[x])
+    return df
+
+
+df = assignment(df, centroids)
+print(df.head())
+
+
+fig = plt.figure(figsize=(5, 5))
+plt.scatter(df['x'], df['y'], color=df['color'], alpha=0.5, edgecolor='k')
+for i in centroids.keys():
+    plt.scatter(*centroids[i], color=colmap[i])
+plt.xlim(0, 80)
+plt.ylim(0, 80)
+plt.show()
+
+
+## Update Stage
+
+
+import copy
+
+
+old_centroids = copy.deepcopy(centroids)
+
+
+def update(k):
+    for i in centroids.keys():
+        centroids[i][0] = np.mean(df[df['closest'] == i]['x'])
+        centroids[i][1] = np.mean(df[df['closest'] == i]['y'])
+    return k
+
+
+centroids = update(centroids)
+   
+fig = plt.figure(figsize=(5, 5))
+ax = plt.axes()
+plt.scatter(df['x'], df['y'], color=df['color'], alpha=0.5, edgecolor='k')
+for i in centroids.keys():
+    plt.scatter(*centroids[i], color=colmap[i])
+plt.xlim(0, 80)
+plt.ylim(0, 80)
+for i in old_centroids.keys():
+    old_x = old_centroids[i][0]
+    old_y = old_centroids[i][1]
+    dx = (centroids[i][0] - old_centroids[i][0]) * 0.75
+    dy = (centroids[i][1] - old_centroids[i][1]) * 0.75
+    ax.arrow(old_x, old_y, dx, dy, head_width=2, head_length=3, fc=colmap[i], ec=colmap[i])
+plt.show()
+
+
+df = assignment(df, centroids)
+
+
+# Plot results
+fig = plt.figure(figsize=(5, 5))
+plt.scatter(df['x'], df['y'], color=df['color'], alpha=0.5, edgecolor='k')
+for i in centroids.keys():
+    plt.scatter(*centroids[i], color=colmap[i])
+plt.xlim(0, 80)
+plt.ylim(0, 80)
+plt.show()
+
+
+
+
+
+
+
+
+
+
+Decision tree:
+
+
+Code:
+
+from sklearn import tree
+from sklearn.model_selection import train_test_split
+X=[[165,19],[175,32],[136,35],[174,65],[141,28],[176,15]
+,[131,32],[166,6],[128,32],[179,10],[136,34],[186,2],[126,25],[176,28],[112,38],[169,9],[171,36],[116,25],[196,25], [196,38], [126,40], [197,20], [150,25], [140,32],[136,35]]
+Y=['Man','Woman','Woman','Man','Woman','Man','Woman','Man','Woman','Man','Woman','Man','Woman','Woman','Woman','Man','Woman','Woman','Man', 'Woman', 'Woman', 'Man', 'Man', 'Woman', 'Woman']
+data_feature_names = ['height','length of hair']
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size = 0.3, random_state = 1)
+DTclf = tree.DecisionTreeClassifier()
+DTclf = DTclf.fit(X,Y)
+prediction = DTclf.predict([[135,0]])
+print(prediction)
+
+
+
+
+
+
+Naive bayes:
+
+
+
+
+
+
+import numpy as np
+import pandas as pd    
+import matplotlib.pyplot as plt
+import math
+
+
+
+
+def accuracy_score(y_true, y_pred):
+
+
+    """ score = (y_true - y_pred) / len(y_true) """
+
+
+    return round(float(sum(y_pred == y_true))/float(len(y_true)) * 100 ,2)
+
+
+def pre_processing(df):
+
+
+    """ partioning data into features and target """
+
+
+    X = df.drop([df.columns[-1]], axis = 1)
+    y = df[df.columns[-1]]
+
+
+    return X, y
+
+
+def train_test_split(x, y, test_size = 0.25, random_state = None):
+
+
+    """ partioning the data into train and test sets """
+
+
+    x_test = x.sample(frac = test_size, random_state = random_state)
+    y_test = y[x_test.index]
+
+
+    x_train = x.drop(x_test.index)
+    y_train = y.drop(y_test.index)
+
+
+    return x_train, x_test, y_train, y_test
+
+
+
+
+
+
+
+
+class  NaiveBayes:
+
+
+    """
+        Bayes Theorem:
+                                        Likelihood * Class prior probability
+                Posterior Probability = -------------------------------------
+                                            Predictor prior probability
+               
+                                         P(x|c) * p(c)
+                               P(c|x) = ------------------
+                                              P(x)
+    """
+
+
+    def __init__(self):
+
+
+        """
+            Attributes:
+                likelihoods: Likelihood of each feature per class
+                class_priors: Prior probabilities of classes
+                pred_priors: Prior probabilities of features
+                features: All features of dataset
+
+
+        """
+        self.features = list
+        self.likelihoods = {}
+        self.class_priors = {}
+        self.pred_priors = {}
+
+
+        self.X_train = np.array
+        self.y_train = np.array
+        self.train_size = int
+        self.num_feats = int
+
+
+    def fit(self, X, y):
+
+
+        self.features = list(X.columns)
+        self.X_train = X
+        self.y_train = y
+        self.train_size = X.shape[0]
+        self.num_feats = X.shape[1]
+
+
+        for feature in self.features:
+            self.likelihoods[feature] = {}
+            self.pred_priors[feature] = {}
+
+
+            for feat_val in np.unique(self.X_train[feature]):
+                self.pred_priors[feature].update({feat_val: 0})
+
+
+                for outcome in np.unique(self.y_train):
+                    self.likelihoods[feature].update({feat_val+'_'+outcome:0})
+                    self.class_priors.update({outcome: 0})
+
+
+
+
+        self._calc_class_prior()
+        self._calc_likelihoods()
+        self._calc_predictor_prior()
+
+
+        # print(self.likelihoods)
+        # print(self.class_priors)
+        # print(self.pred_priors)
+
+
+    def _calc_class_prior(self):
+
+
+        """ P(c) - Prior Class Probability """
+
+
+        for outcome in np.unique(self.y_train):
+            outcome_count = sum(self.y_train == outcome)
+            self.class_priors[outcome] = outcome_count / self.train_size
+
+
+    def _calc_likelihoods(self):
+
+
+        """ P(x|c) - Likelihood """
+
+
+        for feature in self.features:
+
+
+            for outcome in np.unique(self.y_train):
+                outcome_count = sum(self.y_train == outcome)
+                feat_likelihood = self.X_train[feature][self.y_train[self.y_train == outcome].index.values.tolist()].value_counts().to_dict()
+
+
+                for feat_val, count in feat_likelihood.items():
+                    self.likelihoods[feature][feat_val + '_' + outcome] = count/outcome_count
+
+
+
+
+    def _calc_predictor_prior(self):
+
+
+        """ P(x) - Evidence """
+
+
+        for feature in self.features:
+            feat_vals = self.X_train[feature].value_counts().to_dict()
+
+
+            for feat_val, count in feat_vals.items():
+                self.pred_priors[feature][feat_val] = count/self.train_size
+
+
+
+
+    def predict(self, X):
+
+
+        """ Calculates Posterior probability P(c|x) """
+
+
+        results = []
+        X = np.array(X)
+
+
+        for query in X:
+            probs_outcome = {}
+            for outcome in np.unique(self.y_train):
+                prior = self.class_priors[outcome]
+                likelihood = 1
+                evidence = 1
+
+
+                for feat, feat_val in zip(self.features, query):
+                    likelihood *= self.likelihoods[feat][feat_val + '_' + outcome]
+                    evidence *= self.pred_priors[feat][feat_val]
+
+
+                posterior = (likelihood * prior) / (evidence)
+
+
+                probs_outcome[outcome] = posterior
+
+
+            result = max(probs_outcome, key = lambda x: probs_outcome[x])
+            results.append(result)
+
+
+        return np.array(results)
+
+
+           
+
+
+if __name__ == "__main__":
+
+
+    #Weather Dataset
+    print("\nWeather Dataset:")
+
+
+    df = pd.read_table("weather.txt")
+    #print(df)
+
+
+    #Split fearures and target
+    X,y  = pre_processing(df)
+
+
+    #Split data into Training and Testing Sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.1, random_state = 0)
+
+
+    #print(X_train, y_train)
+    nb_clf = NaiveBayes()
+    nb_clf.fit(X_train, y_train)
+    #print(X_train, y_train)
+
+
+    print("Train Accuracy: {}".format(accuracy_score(y_train, nb_clf.predict(X_train))))
+    print("Test Accuracy: {}".format(accuracy_score(y_test, nb_clf.predict(X_test))))
+   
+    #Query 1:
+    query = np.array([['Rainy','Mild', 'Normal', 't']])
+    print("Query 1:- {} ---> {}".format(query, nb_clf.predict(query)))
+
+
+    #Query 2:
+    query = np.array([['Overcast','Cool', 'Normal', 't']])
+    print("Query 2:- {} ---> {}".format(query, nb_clf.predict(query)))
+
+
+    #Query 3:
+    query = np.array([['Sunny','Hot', 'High', 't']])
+    print("Query 3:- {} ---> {}".format(query, nb_clf.predict(query)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Apriori:
+
+
+code:
+import itertools
+transactions = [[1, 2, 5],[2, 4], [2, 3], [1, 2, 4], [1, 3], [2, 3], [1, 3], [1, 2, 3, 5], [1, 2, 3]]
+
+
+min_sup = 2
+k = len(max(transactions, key=len))
+
+
+def start(K):
+    transaction_list = []
+    count_list = []
+    for transaction in transactions:
+        temp = []
+        temp += list(itertools.combinations(transaction, K))
+        for item in temp:
+            if item not in transaction_list:
+                transaction_list.append(item)
+                count_list.append(1)
+            else:
+                count_list[transaction_list.index(item)] += 1
+    return check(transaction_list, count_list)
+
+
+def check(transaction_list, count_list):
+    updated_list = []
+    updated_count = []
+    # CHECK WHETHER SUPPORT > min_sup
+    for i in range(len(count_list)):
+        if count_list[i] >= min_sup:
+            updated_list.append(transaction_list[i])
+            updated_count.append(count_list[i])
+    if len(updated_list) == 0:
+        return transaction_list, count_list
+    return updated_list, updated_count
+
+
+# TODO: stop iterations if minimum support threshold passed
+for K in range(1,k+1):
+    transaction, count = start(K)
+    if count[0] < min_sup:
+        break
+    print(transaction, count)
+    print("----------------------------")
+    if len(transaction) == 1:
+        break
